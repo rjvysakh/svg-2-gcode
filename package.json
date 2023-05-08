@@ -1,12 +1,11 @@
 {
   "name": "svg_gcode",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "main": "index.js",
   "author": "Vysakh RJ",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "dependencies": {
-    "fs": "^0.0.1-security",
     "xmldom": "^0.6.0"
   }
 }
