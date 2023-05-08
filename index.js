@@ -16,7 +16,7 @@ var originpos=0,defaultcut=1,defaultpasses=1,defaultbottomprofile=0;
 var safez=4,points=[],handles=[],passmode=0;
 var loaded=false,stopchangedevents=false,cncmode=1,selhand=-1;
 var maxspeed=1000; // GRBL spindle speed maximum value
-var g0feed=200; // Move speed when not cutting/engraving
+var g0feed=2000; // Move speed when not cutting/engraving
 var projecturl=""; // For when a sample file is loaded
 var tempsample,grblmode=0;
 
@@ -30,7 +30,7 @@ var origintexts=["Bottom left","Top left","Bottom right","Top right","Middle"];
 
 /// function calling
 
-fetchSVG('close.svg');
+fetchSVG('shirt_shop_std_back.svg');
 
 
 /// import
@@ -79,7 +79,7 @@ function loadfile(svgString)
      cutterheight, //height
      0, //input_grblmode (0 -1000)
      0, //input safez
-      3, // movespeed (200)
+      259, // movespeed (200) /// F2000  movement when laser off
       0 //passmode (path by path)
       )
 }
@@ -375,23 +375,25 @@ function parsesvg() {
     // console.log(valtxt===NaN)
     console.log(typeof valtxt)
 
-    if (!valtxt || valtxt === null || valtxt === undefined || valtxt=== NaN) {
-      r=0;
+    // if (!valtxt || (valtxt === null) || (valtxt === undefined) || (valtxt=== NaN)) {
+    //   r=0;
 
-    }else{
+    // }else{
       console.log("inside")
+      console.log(valtxt)
+
       
-      if (valtxt&&  valtxt.includes("e") || valtxt.includes("E")) {
-        r = parseFloat(r.toFixed(10));
+      if (valtxt &&  (valtxt.includes("e") || valtxt.includes("E"))) {
+        r = parseFloat(valtxt.split("e")[0]);
       }else {
         r = parseFloat(valtxt);
 
       }
       console.log(r)
 
-    }
     return r;
   }
+ 
 
   ///generate path element 
   function dopathelement(el, p, startlast) {
@@ -1128,8 +1130,8 @@ function makecncstartgcode()
 /// getting  default values
 function getdefaults()
 {
-  defaultfeed=200;
-  defaultspeed=50;
+  defaultfeed=400; ///F600 values for laser on
+  defaultspeed=22; //S1000
   defaultcut=1;
   defaultpasses=1;
   defaultgroup=0;
@@ -1362,7 +1364,7 @@ function makecncendgcode()
   gcode+="\r\n";
   gcode+="; End of cutting - finishing off\r\n"
   gcode+="G90 ; Set absolute coordinate mode\r\n";
-  gcode+="G0 X0 Y0 ; Move to work origin\r\n";
+  gcode+="G0 X0 Y0 F13000; Move to work origin\r\n";
   gcode+="M5 ; Ensure the spindle motor or LASER is turned off\r\n";
   gcode+="M2 ; End the program\r\n";
 }
