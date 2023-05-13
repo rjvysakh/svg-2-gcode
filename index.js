@@ -106,6 +106,9 @@ async function convertSvgToGcode(
   laserOnMovementSpeed = laserOnSpeed;
   laserIntensityValue = laserIntensity;
   laserOffMovementSpeed = laserOffSpeed;
+  console.log(gcode);
+  svgin=""
+  gcode=""
 
 
   return new Promise((resolve, reject) => {
@@ -125,27 +128,25 @@ module.exports= convertSvgToGcode;
 
 /// import
 
-function fetchSVG(input_path) {
-  filename = path.basename(input_path)
-  return new Promise((resolve, reject) => {
- fs.readFile(input_path, "utf-8", (err, data) => {
-    if (err) {
-      console.error(`Error reading file: ${err.message}`);
-      reject(err);
+// function fetchSVG(input_path) {
+//   filename = path.basename(input_path)
+//   return new Promise((resolve, reject) => {
+//  fs.readFile(input_path, "utf-8", (err, data) => {
+//     if (err) {
+//       console.error(`Error reading file: ${err.message}`);
+//       reject(err);
 
-    } else {
-      // `data` contains the contents of the SVG file as a string
-      // console.log(`SVG file contents:\n${data}`);
+//     } else {
+//       // `data` contains the contents of the SVG file as a string
+//       // console.log(`SVG file contents:\n${data}`);
 
-      // You can process the SVG data here as needed
-      //  gcodeOut  = loadfile(data);
-      resolve(loadfile(data));
-    }
-  });
-});
-
-
-}
+//       // You can process the SVG data here as needed
+//       //  gcodeOut  = loadfile(data);
+//       resolve(loadfile(data));
+//     }
+//   });
+// });
+// }
 
 function loadfile(svgString) {
   projecturl = "";

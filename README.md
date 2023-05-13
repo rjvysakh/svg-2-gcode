@@ -1,6 +1,9 @@
 # svg_gcode
 
-"svg_gcode" is an npm package that converts SVG file inputs into G-code text. It is a modified version of the open source repository "gcodercnc2d5" by drandrewthomas, with additional modifications using jQuery.
+"svg_gcode" is an npm package that converts SVG file inputs into G-code text. It is a modified version of the open source repository "gcodercnc2d5" by drandrewthomas, with additional modifications in jQuery. 
+
+v1.0.8 
+Removed fs, now works with ReactJS.
 
 ## Installation
 
@@ -18,11 +21,11 @@ Here's an example of how to use "svg_gcode" to convert an SVG file into G-code t
 const svgGcode = require('svg_gcode');
 
 // Read SVG file contents from a file or a string
-const svgIn = './images/image.svg';
+var svgString = '<svg width="2480" height="3508" viewBox="0 0 2480 3508" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="2.5" width="2475" height="3503" stroke="black" stroke-width="5"/></svg>';
 
 // Convert SVG to G-code
 
-svgGcode(svgIn {
+svgGcode(svgString, {
   laserIntensity: 22,
   laserOnSpeed: 400,
   laserOffSpeed: 259,

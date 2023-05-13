@@ -1,11 +1,21 @@
 {
   "name": "svg_gcode",
-  "version": "1.0.6",
+  "version": "1.0.9",
   "main": "index.js",
   "author": "Vysakh RJ",
   "license": "MIT",
   "private": false,
   "dependencies": {
     "xmldom": "^0.6.0"
-  }
+  },
+  "keywords" : [
+    "svg",
+    "gcode",
+    "svg2gcode",
+    "cnc",
+    "nc",
+    "plotter",
+    "gcodeConverter"
+  ]
+
 }
