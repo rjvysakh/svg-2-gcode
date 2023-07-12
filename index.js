@@ -1,17 +1,14 @@
 const { DOMParser } = require("xmldom");
 
-var mainversion = 1,
-  subversion = 6;
 var svgin,
   filename,
-  fext,
   gcode = "";
 var torad = Math.PI / 180;
 var transforms = [];
 var commands = [];
 var lastx, lasty;
 var cutterwidth, cutterheight, cutteraspect, cnccanvas;
-var arcdist = 0.2; // Distance between points on arcs
+var arcdist = 0.5; // Distance between points on arcs
 var xmin,
   xmax,
   ymin,
@@ -58,7 +55,6 @@ var svgcommands = [
 ];
 
 var bottomprofilelist = [
-
   "Flat all along",
   "Straight down-up",
   "Straight up-down",
@@ -78,18 +74,7 @@ var origintexts = [
   "Middle",
 ];
 
-var laserOnMovementSpeed,
-  laserOffMovementSpeed,
-  laserIntensityValue;
-/// function calling
-
-var svgString = '<svg width="2480" height="3508" viewBox="0 0 2480 3508" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2.5" y="2.5" width="2475" height="3503" stroke="black" stroke-width="5"/></svg>';
-
-
-// convertSvgToGcode(svgString,{
-//   laserIntensity: 22,
-//   laserOnSpeed: 400,
-//   laserOffSpeed: 259,}).then((svgCode)=>console.log(svgCode))
+var laserOnMovementSpeed, laserOffMovementSpeed, laserIntensityValue;
 
 async function convertSvgToGcode(
   svgIn,
@@ -107,46 +92,15 @@ async function convertSvgToGcode(
   laserIntensityValue = laserIntensity;
   laserOffMovementSpeed = laserOffSpeed;
   console.log(gcode);
-  svgin=""
-  gcode=""
-
+  svgin = "";
+  gcode = "";
 
   return new Promise((resolve, reject) => {
-  
     resolve(loadfile(svgIn));
   });
-
-  
-  // var gcodeOut = await fetchSVG(inputPath);
-  // return gcodeOut;
 }
 
-module.exports= convertSvgToGcode;
-
-
-// fetchSVG('shirt_shop_std_back.svg',);
-
-/// import
-
-// function fetchSVG(input_path) {
-//   filename = path.basename(input_path)
-//   return new Promise((resolve, reject) => {
-//  fs.readFile(input_path, "utf-8", (err, data) => {
-//     if (err) {
-//       console.error(`Error reading file: ${err.message}`);
-//       reject(err);
-
-//     } else {
-//       // `data` contains the contents of the SVG file as a string
-//       // console.log(`SVG file contents:\n${data}`);
-
-//       // You can process the SVG data here as needed
-//       //  gcodeOut  = loadfile(data);
-//       resolve(loadfile(data));
-//     }
-//   });
-// });
-// }
+module.exports = convertSvgToGcode;
 
 function loadfile(svgString) {
   projecturl = "";
@@ -167,9 +121,8 @@ function loadfile(svgString) {
   loaded = true;
   // layoutapp();
   // drawtocanvas("svgcanvas");
-  // setsvgtexts();
   if (textelfound === true) console.log("textel found");
-  var gcodeOutput =  generategcode(
+  var gcodeOutput = generategcode(
     cutterwidth, //width
     cutterheight, //height
     0, //input_grblmode (0 - 1000)
@@ -326,6 +279,7 @@ function cleansvg() {
   }
   svgin = svg;
 }
+
 // for parsing svg, extract elements from the svg and transforming
 function parsesvg() {
   var c, svgchild, parser, xmldoc, svg;
@@ -362,6 +316,7 @@ function parseelement(el) {
     for (c = 0; c < elchild.length; c++) parseelement(elchild[c]);
     if (name === "g" && t !== null) transforms.pop();
   }
+  if (name === "svg") checksvgfordefaults(el);
   if (name === "path") {
     var path = el.getAttribute("d");
     if (path !== null) {
@@ -382,6 +337,30 @@ function parseelement(el) {
   else if (name === "image") doimageelement(el);
   else if (name === "text") dotextelement(el);
   else dounknownelement(el);
+}
+
+function checksvgfordefaults(el) {
+  var p;
+  loadedversion = "";
+  p = el.getAttribute("cnccreator");
+  if (p != null && p != undefined) loadedversion = p;
+  // console.log("File version: " + loadedversion);
+  // p = el.getAttribute("cncmode");
+  // if (p != null && p != undefined) cncmode = parseInt(p);
+  p = el.getAttribute("originpos");
+  if (p != null && p != undefined) originpos = parseInt(p);
+  p = el.getAttribute("defaultspeed");
+  if (p != null && p != undefined) defaultspeed = parseInt(p);
+  p = el.getAttribute("defaultfeed");
+  if (p != null && p != undefined) defaultfeed = parseInt(p);
+  p = el.getAttribute("defaultgroup");
+  if (p != null && p != undefined) defaultgroup = parseInt(p);
+  p = el.getAttribute("defaultcut");
+  if (p != null && p != undefined) defaultcut = parseInt(p);
+  p = el.getAttribute("defaultpasses");
+  if (p != null && p != undefined) defaultpasses = parseInt(p);
+  p = el.getAttribute("defaultbottomprofile");
+  if (p != null && p != undefined) defaultbottomprofile = parseInt(p);
 }
 
 // split compounded path into seperate paths
@@ -464,26 +443,43 @@ function cleanpath(p) {
 }
 
 /// parse the float value
-//TODO - FIX THE ISSUE  WITH UNDEFINED VALTXT CALLING INCLUDES
 function parseMyFloat(valtxt) {
   var r = null;
-  // console.log(valtxt===undefined)
-  // console.log(valtxt===NaN)
-
-  // if (!valtxt || (valtxt === null) || (valtxt === undefined) || (valtxt=== NaN)) {
-  //   r=0;
-
-  // }else{
-
-
-  if (valtxt && (valtxt.includes("e") || valtxt.includes("E"))) {
-    r = parseFloat(valtxt.split("e")[0]);
-  } else {
-    r = parseFloat(valtxt);
+  try {
+    if (valtxt !== null) {
+      r = parseFloat(valtxt);
+      if (valtxt.includes("e") || valtxt.includes("E")) {
+        r = parseFloat(r.toFixed(10));
+      }
+    }
+  } catch (e) {
+    if (valtxt && (valtxt.includes("e") || valtxt.includes("E"))) {
+      r = parseFloat(valtxt.split("e")[0]);
+    } else {
+      r = parseFloat(valtxt);
+    }
   }
-
   return r;
 }
+// //TODO - FIX THE ISSUE  WITH UNDEFINED VALTXT CALLING INCLUDES
+// function parseMyFloat(valtxt) {
+//   var r = null;
+//   // console.log(valtxt===undefined)
+//   // console.log(valtxt===NaN)
+
+//   // if (!valtxt || (valtxt === null) || (valtxt === undefined) || (valtxt=== NaN)) {
+//   //   r=0;
+
+//   // }else{
+
+//   if (valtxt && (valtxt.includes("e") || valtxt.includes("E"))) {
+//     r = parseFloat(valtxt.split("e")[0]);
+//   } else {
+//     r = parseFloat(valtxt);
+//   }
+
+//   return r;
+// }
 
 ///generate path element
 function dopathelement(el, p, startlast) {
@@ -512,6 +508,7 @@ function dopathelement(el, p, startlast) {
     x4,
     y4,
     mx = 0,
+    id,
     my = 0,
     pline;
   var ret,
@@ -680,14 +677,54 @@ function dopathelement(el, p, startlast) {
       }
     }
   }
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
+  checklastpathforoverrides(el);
+}
+
+function makesvgid(el) {
+  var id = el.getAttribute("id");
+  if (id === null || id === undefined) id = "path_" + (commands.length + 1);
+  else {
+    id = id.replace("-", "_");
+    id = id.replace(/[^A-Za-z0-9_]/g, "");
+    id += "_" + (commands.length + 1);
+  }
+  return id;
+}
+
+function checklastpathforoverrides(el) {
+  var p;
+  var ind = commands.length - 1;
+  // p = el.getAttribute("override");
+  // if (p != null && p != undefined) commands[ind][8] = parseInt(p);
+  // p = el.getAttribute("cutenabled");
+  // if (p != null && p != undefined) commands[ind][6] = parseInt(p);
+  p = el.getAttribute("closed");
+  if (p != null && p != undefined) commands[ind][11] = parseInt(p);
+  if (commands[ind][8] === 1) {
+    p = el.getAttribute("cutdepth");
+    if (p != null && p != undefined) commands[ind][2] = parseInt(p);
+    p = el.getAttribute("passes");
+    if (p != null && p != undefined) commands[ind][3] = parseInt(p);
+    p = el.getAttribute("feedrate");
+    if (p != null && p != undefined) commands[ind][4] = parseInt(p);
+    p = el.getAttribute("spindlespeed");
+    if (p != null && p != undefined) commands[ind][5] = parseInt(p);
+    p = el.getAttribute("group");
+    if (p != null && p != undefined) commands[ind][7] = parseInt(p);
+    p = el.getAttribute("bottomprofile");
+    if (p != null && p != undefined) commands[ind][9] = parseInt(p);
+  }
 }
 
 ///function for rect component
+
 function dorectelement(el) {
   var closed = 1;
   var xy,
-    en = 1;
+    en = 1,
+    id;
   var cl = el.getAttribute("class");
   if (cl === "BoundingBox") return;
   var stroke = el.getAttribute("stroke");
@@ -737,12 +774,14 @@ function dorectelement(el) {
     xy = dotransforms(x, y + ry, tmat);
     points.push([xy[0], xy[1]]);
   }
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 /// function for circle element
 function docircleelement(el) {
   var closed = 1;
-  var en = 1;
+  var en = 1,
+    id;
   var stroke = el.getAttribute("stroke");
   if (stroke === "none") en = 0;
   var x = parseMyFloat(el.getAttribute("cx"));
@@ -753,13 +792,15 @@ function docircleelement(el) {
   var tmat = gettransform(trans);
   points = [];
   drawarc(x, y, r, r, 0, 360, 1, tmat);
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 
 /// function for ellipse element
 function doellipseelement(el) {
   var closed = 1;
-  var en = 1;
+  var en = 1,
+    id;
   var stroke = el.getAttribute("stroke");
   if (stroke === "none") en = 0;
   var x = parseMyFloat(el.getAttribute("cx"));
@@ -771,13 +812,15 @@ function doellipseelement(el) {
   var tmat = gettransform(trans);
   points = [];
   drawarc(x, y, rx, ry, 0, 360, 1, tmat);
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 // function for line  element
 function dolineelement(el) {
   var closed = 0;
   var xy,
-    en = 1;
+    en = 1,
+    id;
   var stroke = el.getAttribute("stroke");
   if (stroke === "none") en = 0;
   var x1 = parseMyFloat(el.getAttribute("x1"));
@@ -792,7 +835,8 @@ function dolineelement(el) {
   points.push([xy[0], xy[1]]);
   xy = dotransforms(x2, y2, tmat);
   points.push([xy[0], xy[1]]);
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 // function for polygon element
 function dopolygonelement(el) {
@@ -804,7 +848,8 @@ function dopolygonelement(el) {
     sy,
     c,
     pline,
-    en = 1;
+    en = 1,
+    id;
   var stroke = el.getAttribute("stroke");
   if (stroke === "none") en = 0;
   var pts = el.getAttribute("points");
@@ -824,7 +869,8 @@ function dopolygonelement(el) {
     } else points.push([xy[0], xy[1]]);
   }
   points.push([sx, sy]);
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 /// function for polyline element
 function dopolylineelement(el) {
@@ -834,7 +880,8 @@ function dopolylineelement(el) {
     xy,
     c,
     pline,
-    en = 1;
+    en = 1,
+    id;
   var stroke = el.getAttribute("stroke");
   if (stroke === "none") en = 0;
   var pts = el.getAttribute("points");
@@ -854,9 +901,11 @@ function dopolylineelement(el) {
     points[0][1] === points[points.length - 1][1]
   )
     closed = 1;
-  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed]);
+  id = makesvgid(el);
+  commands.push(["L", points, -1, -1, -1, -1, en, -1, 0, -1, 0, closed, id]);
 }
 // image element function
+
 function doimageelement(el) {
   var xy,
     en = 1;
@@ -880,11 +929,11 @@ function drawarc(cx, cy, rx, ry, dsa, sw, dir, tmat) {
   var sweep = Math.abs((sw / 180) * Math.PI);
   var astep = sweep / 10000;
   for (cang = 0; cang <= sweep; cang += astep) {
-    ang = sa + cang * dir;
-    if (ang < 0) ang += 2 * Math.PI;
-    if (ang > 2 * Math.PI) ang -= 2 * Math.PI;
-    mx = cx + rx * Math.sin(ang);
-    my = cy - ry * Math.cos(ang);
+    ang = sa + (cang * dir);
+    if (ang < 0) ang += (2 * Math.PI);
+    if (ang > (2 * Math.PI)) ang -= (2 * Math.PI);
+    mx = cx + (rx * Math.sin(ang));
+    my = cy - (ry * Math.cos(ang));
     if (cang === 0 || dist(lastx, lasty, mx, my) > arcdist || cang >= sweep) {
       xy = dotransforms(mx, my, tmat);
       points.push([xy[0], xy[1]]);
@@ -1242,27 +1291,14 @@ function generategcode(
 }
 
 function downloadcncfile() {
-  // var fname = filename.split(".")[0] + ".nc";
-  makecnctext();
-
+  makecnctext(0.5);
   return gcode;
-
-  // fs.writeFile(output + fname, gcode, "utf-8", (err) => {
-  //   if (err) {
-  //     console.error(`Error writing file: ${err.message}`);
-  //     throw new Error("Output couldn't be saved");
-  //   } else {
-  //     console.log(`File '${fname}' saved successfully.`);
-  //   }
-  // });
 }
 
-function makecnctext() {
+function makecnctext(adist) {
   // makecnccommentheader();
   makecncstartgcode();
-  makecnctext_pathbypath();
-  // if(passmode===0) makecnctext_pathbypath();
-  // if(passmode===1) makecnctext_passbypass();
+  makecnctext_pathbypath(adist);
   makecncendgcode();
 }
 /// header contents not needed
@@ -1351,21 +1387,21 @@ function getmaxcutdepth() {
 }
 /// start gcode
 function makecncstartgcode() {
-  gcode += "; Getting the CNC set up\r\n";
+  // gcode += "; Getting the CNC set up\r\n";
   gcode += "G21 ; Set units to mm\r\n";
   gcode += "G17 ; Select XY plane\r\n";
   gcode += "G90 ; Set absolute coordinate mode\r\n";
   if (cncmode === 0) {
-    gcode += "G0 X0 Y0 Z0 F" + g0feed + " S0 ; Move to work origin\r\n";
+    // gcode += "G0 X0 Y0 Z0 F" + g0feed + " S0 ; Move to work origin\r\n";
     gcode += "M3 ; Start spindle motor clockwise\r\n";
   } else {
     gcode += "M5 ; Ensure LASER is turned off\r\n";
-    gcode += "G0 X0 Y0 F" + g0feed + " S0 ; Move to work origin\r\n";
+    // gcode += "G0 X0 Y0 F" + g0feed + " S0 ; Move to work origin\r\n";
   }
   gcode += "G91 ; Set relative coordinate mode\r\n";
-  gcode += "\r\n";
-  gcode += "; Ready to start cutting/engraving\r\n";
-  gcode += "\r\n";
+  // gcode += "\r\n";
+  // gcode += "; Ready to start cutting/engraving\r\n";
+  // gcode += "\r\n";
 }
 /// getting  default values
 function getdefaults() {
@@ -1380,7 +1416,7 @@ function getdefaults() {
 }
 
 /// cnctext path by path
-function makecnctext_pathbypath() {
+function makecnctext_pathbypath(adist) {
   var c,
     d,
     ct = 0,
@@ -1403,6 +1439,7 @@ function makecnctext_pathbypath() {
       if (commands[c][3] > maxpasses) maxpasses = commands[c][3];
   var sfx = cutterwidth / (xmax - xmin);
   var sfy = cutterheight / (ymax - ymin);
+  console.log(originpos);
   switch (originpos) {
     case 0:
       originx = 0;
@@ -1448,7 +1485,7 @@ function makecnctext_pathbypath() {
           gcode += "\r\n";
           for (pass = 0; pass < cpasses; pass++) {
             if (cncmode === 0) ct = ((pass + 1) / cpasses) * ccut;
-            pts = maketoolpath(c, ct, ccut, sfx, sfy, cutterheight);
+            pts = maketoolpath(c, ct, ccut, sfx, sfy, cutterheight,adist);
             tx = pts[0][0];
             ty = pts[0][1];
             x = tx - originx - lastx;
@@ -1516,8 +1553,55 @@ function makecnctext_pathbypath() {
     }
   }
 }
+function pathtoarcdistance(pts, adist) {
+  var c,
+    d,
+    p,
+    da,
+    slen,
+    dleft = 0,
+    px,
+    py,
+    vx,
+    vy,
+    sx,
+    sy,
+    np,
+    tpts = [];
+  if (pts.length < 2) return pts;
+  tpts.push(pts[0]);
+  for (c = 1; c < pts.length; c++) {
+    slen = mag(pts[c][0] - pts[c - 1][0], pts[c][1] - pts[c - 1][1]);
+    if (dleft + slen < adist)
+      dleft += slen; // I.e. no points to set on current line element
+    else {
+      sx = pts[c - 1][0];
+      sy = pts[c - 1][1];
+      vx = pts[c][0] - sx;
+      vy = pts[c][1] - sy;
+      np = (slen - dleft) / adist;
+      for (d = 0; d <= Math.floor(np); d++) {
+        da = (dleft + d * adist) / slen;
+        px = sx + da * vx;
+        py = sy + da * vy;
+        tpts.push([px, py, 0]); // No need to interpolate Z because done before calculating bottom profile
+      }
+      dleft = slen - (Math.floor(np) * adist + dleft);
+    }
+  }
+  tpts.push(pts[pts.length - 1]);
+  return tpts;
+}
 
-function maketoolpath(path, cutdepth, totaldepth, sfx, sfy, cutterheight) {
+function maketoolpath(
+  path,
+  cutdepth,
+  totaldepth,
+  sfx,
+  sfy,
+  cutterheight,
+  adist
+) {
   var c,
     pts,
     lastz,
@@ -1530,11 +1614,11 @@ function maketoolpath(path, cutdepth, totaldepth, sfx, sfy, cutterheight) {
   // Scale to finished dimensions
   pts = scaletoolpath(pts, sfx, sfy, cutterheight);
   // Simplify to sensible segment lengths
-  pts = simplifytoolpath(pts, arcdist);
+  pts = simplifytoolpath(pts, adist);
   // If not a flat bottom profile increase the number of points
   if (commands[path][9] !== -1) profile = commands[path][9];
   else profile = defaultbottomprofile;
-  if (profile !== 0) pts = pathtoarcdistance(pts);
+  if (profile !== 0) pts = pathtoarcdistance(pts, adist);
   // Calculate the path  length
   plen = pathlength(pts);
   // Calculate depth based on bottom profile type
@@ -1644,7 +1728,9 @@ function makecncendgcode() {
   gcode += "\r\n";
   gcode += "; End of cutting - finishing off\r\n";
   gcode += "G90 ; Set absolute coordinate mode\r\n";
-  gcode += "G0 X0 Y0 F13000; Move to work origin\r\n";
+  gcode += "G0 X0 Y0 F850; Move to work origin\r\n";
   gcode += "M5 ; Ensure the spindle motor or LASER is turned off\r\n";
+  gcode +=
+    "M5 I ; Ensure the spindle motor or LASER is turned off in inline mode\r\n";
   gcode += "M2 ; End the program\r\n";
 }
